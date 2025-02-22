@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha de Treino</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 500px; margin: auto; text-align: center; }
+        input, button { display: block; margin: 10px auto; width: 100%; padding: 8px; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .concluido { background-color: #d4edda; }
+    </style>
+</head>
+<body>
+    <div class="container" id="homePage">
+        <h2>Meus Treinos</h2>
+        <p>Treinos concluídos na semana: <span id="treinosSemana">0</span></p>
+        <p>Treinos concluídos ao todo: <span id="treinosTotais">0</span></p>
+        <ul id="listaTreinos"></ul>
+        <input type="text" id="novoTreino" placeholder="Nome do novo treino">
+        <button onclick="adicionarTreinoLista()">Adicionar Treino</button>
+    </div>
+    
+    <div class="container" id="treinoPage" style="display: none;">
+        <h2 id="treinoTitulo"></h2>
+        <input type="text" id="exercicio" placeholder="Nome do exercício">
+        <input type="number" id="series" placeholder="Séries">
+        <input type="number" id="repeticoes" placeholder="Repetições">
+        <input type="number" id="carga" placeholder="Carga (kg)">
+        <button onclick="adicionarTreino()">Adicionar/Atualizar Exercício</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>Exercício</th>
+                    <th>Séries</th>
+                    <th>Repetições</th>
+                    <th>Carga (kg)</th>
+                    <th>Concluir</th>
+                    <th>Editar</th>
+                    <th>Remover</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaTreino"></tbody>
+        </table>
+        <button onclick="concluirTreino()">Concluir Treino</button>
+        <button onclick="voltarHome()">Voltar</button>
+    </div>
+    
+    <script>
+        let exercicioEditando = null; // Para armazenar o índice do exercício sendo editado
+
+        function carregarTreinosLista() {
+            let treinos = JSON.parse(localStorage.getItem("treinosLista")) || [];
+            let lista = document.getElementById("listaTreinos");
+            lista.innerHTML = "";
+            treinos.forEach((treino, index) => {
+                let item = `<li>
+                    <button onclick="abrirTreino('${treino}')">${treino}</button>
+                    <button onclick="removerTreinoLista(${index})">Remover</button>
+                </li>`;
+                lista.innerHTML += item;
+            });
+            atualizarContadores();
+        }
+        
+        function adicionarTreinoLista() {
+            let nomeTreino = document.getElementById("novoTreino").value;
+            if (nomeTreino) {
+                let treinos = JSON.parse(localStorage.getItem("treinosLista")) || [];
+                treinos.push(nomeTreino);
+                localStorage.setItem("treinosLista", JSON.stringify(treinos));
+                carregarTreinosLista();
+            }
+        }
+        
+        function removerTreinoLista(index) {
+            let treinos = JSON.parse(localStorage.getItem("treinosLista"));
+            treinos.splice(index, 1);
+            localStorage.setItem("treinosLista", JSON.stringify(treinos));
+            carregarTreinosLista();
+        }
+        
+        function abrirTreino(nome) {
+            localStorage.setItem("treinoAtual", nome);
+            document.getElementById("homePage").style.display = "none";
+            document.getElementById("treinoPage").style.display = "block";
+            document.getElementById("treinoTitulo").innerText = nome;
+            carregarTreinos();
+        }
+        
+        function voltarHome() {
+            document.getElementById("homePage").style.display = "block";
+            document.getElementById("treinoPage").style.display = "none";
+        }
+        
+        function concluirTreino() {
+            let concluidosTotais = parseInt(localStorage.getItem("treinosConcluidosTotais")) || 0;
+            let concluidosSemana = parseInt(localStorage.getItem("treinosConcluidosSemana")) || 0;
+            concluidosTotais++;
+            concluidosSemana++;
+            localStorage.setItem("treinosConcluidosTotais", concluidosTotais);
+            localStorage.setItem("treinosConcluidosSemana", concluidosSemana);
+            alert("Treino concluído! Parabéns!");
+            voltarHome();
+            atualizarContadores();
+        }
+        
+        function atualizarContadores() {
+            document.getElementById("treinosTotais").innerText = localStorage.getItem("treinosConcluidosTotais") || 0;
+            document.getElementById("treinosSemana").innerText = localStorage.getItem("treinosConcluidosSemana") || 0;
+        }
+
+        function carregarTreinos() {
+            let treinoAtual = localStorage.getItem("treinoAtual");
+            let treinos = JSON.parse(localStorage.getItem("treinos")) || {};
+            let treino = treinos[treinoAtual] || [];
+            let tabela = document.getElementById("tabelaTreino");
+            tabela.innerHTML = "";
+            treino.forEach((exercicio, index) => {
+                let row = `<tr class="${exercicio.concluido ? 'concluido' : ''}">
+                    <td>${exercicio.nome}</td>
+                    <td>${exercicio.series}</td>
+                    <td>${exercicio.repeticoes}</td>
+                    <td>${exercicio.carga}</td>
+                    <td><button onclick="concluirExercicio(${index})">Concluir</button></td>
+                    <td><button onclick="editarExercicio(${index})">Editar</button></td>
+                    <td><button onclick="removerExercicio(${index})">Remover</button></td>
+                </tr>`;
+                tabela.innerHTML += row;
+            });
+        }
+
+        function adicionarTreino() {
+            let nomeExercicio = document.getElementById("exercicio").value;
+            let series = document.getElementById("series").value;
+            let repeticoes = document.getElementById("repeticoes").value;
+            let carga = document.getElementById("carga").value;
+
+            if (nomeExercicio && series && repeticoes && carga) {
+                let treinoAtual = localStorage.getItem("treinoAtual");
+                let treinos = JSON.parse(localStorage.getItem("treinos")) || {};
+                if (!treinos[treinoAtual]) {
+                    treinos[treinoAtual] = [];
+                }
+                if (exercicioEditando !== null) {
+                    // Editando um exercício existente
+                    treinos[treinoAtual][exercicioEditando] = { nome: nomeExercicio, series, repeticoes, carga, concluido: false };
+                    exercicioEditando = null; // Resetar após edição
+                } else {
+                    // Adicionando um novo exercício
+                    treinos[treinoAtual].push({ nome: nomeExercicio, series, repeticoes, carga, concluido: false });
+                }
+                localStorage.setItem("treinos", JSON.stringify(treinos));
+                carregarTreinos();
+            }
+        }
+
+        function concluirExercicio(index) {
+            let treinoAtual = localStorage.getItem("treinoAtual");
+            let treinos = JSON.parse(localStorage.getItem("treinos"));
+            let treino = treinos[treinoAtual];
+            treino[index].concluido = true;  // Marca o exercício como concluído
+            localStorage.setItem("treinos", JSON.stringify(treinos));
+            carregarTreinos();  // Atualiza a tabela com a classe 'concluido'
+        }
+
+        function removerExercicio(index) {
+            let treinoAtual = localStorage.getItem("treinoAtual");
+            let treinos = JSON.parse(localStorage.getItem("treinos"));
+            treinos[treinoAtual].splice(index, 1);
+            localStorage.setItem("treinos", JSON.stringify(treinos));
+            carregarTreinos();
+        }
+
+        function editarExercicio(index) {
+            let treinoAtual = localStorage.getItem("treinoAtual");
+            let treinos = JSON.parse(localStorage.getItem("treinos"));
+            let exercicio = treinos[treinoAtual][index];
+            document.getElementById("exercicio").value = exercicio.nome;
+            document.getElementById("series").value = exercicio.series;
+            document.getElementById("repeticoes").value = exercicio.repeticoes;
+            document.getElementById("carga").value = exercicio.carga;
+            exercicioEditando = index; // Marca qual exercício está sendo editado
+        }
+
+        window.onload = function() {
+            carregarTreinosLista();
+            atualizarContadores();
+        };
+    </script>
+</body>
+</html>
+
+   
+      
+
+
